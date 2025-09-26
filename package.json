@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun run index.ts",
     "start": "bun run index.ts",
+    "trend:headless": "bun run src/run-trend-headless.ts",
     "test": "bun x vitest run",
     "test:watch": "bun x vitest"
   },
