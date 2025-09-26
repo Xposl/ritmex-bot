@@ -3,7 +3,7 @@ import { Box, Text, useInput } from "ink";
 import { tradingConfig } from "../config";
 import { AsterExchangeAdapter } from "../exchanges/aster-adapter";
 import { TrendEngine, type TrendEngineSnapshot } from "../core/trend-engine";
-import { formatNumber } from "../utils/format";
+import { formatNumber, inferDigitsFromTick } from "../utils/format";
 import { DataTable, type TableColumn } from "./components/DataTable";
 
 const READY_MESSAGE = "正在等待交易所推送数据…";
@@ -100,12 +100,13 @@ export function TrendApp({ onExit }: TrendAppProps) {
     { key: "status", header: "Status", minWidth: 10 },
   ];
 
+  const priceDigits = inferDigitsFromTick(tradingConfig.priceTick, 4);
   return (
     <Box flexDirection="column" paddingX={1} paddingY={0}>
       <Box flexDirection="column" marginBottom={1}>
         <Text color="cyanBright">Trend Strategy Dashboard</Text>
         <Text>
-          交易对: {snapshot.symbol} ｜ 最近价格: {formatNumber(lastPrice, 2)} ｜ SMA30: {formatNumber(sma30, 2)} ｜ 趋势: {trend}
+          交易对: {snapshot.symbol} ｜ 最近价格: {formatNumber(lastPrice, priceDigits)} ｜ SMA30: {formatNumber(sma30, priceDigits)} ｜ 趋势: {trend}
         </Text>
         <Text color="gray">状态: {ready ? "实时运行" : READY_MESSAGE} ｜ 按 Esc 返回策略选择</Text>
       </Box>
@@ -116,7 +117,7 @@ export function TrendApp({ onExit }: TrendAppProps) {
           {hasPosition ? (
             <>
               <Text>
-                方向: {position.positionAmt > 0 ? "多" : "空"} ｜ 数量: {formatNumber(Math.abs(position.positionAmt), 4)} ｜ 开仓价: {formatNumber(position.entryPrice, 2)}
+                方向: {position.positionAmt > 0 ? "多" : "空"} ｜ 数量: {formatNumber(Math.abs(position.positionAmt), 4)} ｜ 开仓价: {formatNumber(position.entryPrice, priceDigits)}
               </Text>
               <Text>
                 浮动盈亏: {formatNumber(snapshot.pnl, 4)} USDT ｜ 账户未实现盈亏: {formatNumber(snapshot.unrealized, 4)} USDT
@@ -136,7 +137,7 @@ export function TrendApp({ onExit }: TrendAppProps) {
           </Text>
           {snapshot.lastOpenSignal.side ? (
             <Text color="gray">
-              最近开仓信号: {snapshot.lastOpenSignal.side} @ {formatNumber(snapshot.lastOpenSignal.price, 2)}
+              最近开仓信号: {snapshot.lastOpenSignal.side} @ {formatNumber(snapshot.lastOpenSignal.price, priceDigits)}
             </Text>
           ) : null}
         </Box>
