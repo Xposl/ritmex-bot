@@ -12,6 +12,10 @@ export interface TradingConfig {
   maxCloseSlippagePct: number;
   priceTick: number; // price tick size, e.g. 0.1 for BTCUSDT
   qtyStep: number;   // quantity step size, e.g. 0.001 BTC
+  /** 移动平均类型: SMA | EMA */
+  maType: "SMA" | "EMA";
+  /** 移动平均窗口长度 */
+  maLength: number;
 }
 
 function parseNumber(value: string | undefined, fallback: number): number {
@@ -34,6 +38,8 @@ export const tradingConfig: TradingConfig = {
   maxCloseSlippagePct: parseNumber(process.env.MAX_CLOSE_SLIPPAGE_PCT, 0.05),
   priceTick: parseNumber(process.env.PRICE_TICK, 0.1),
   qtyStep: parseNumber(process.env.QTY_STEP, 0.001),
+  maType: (process.env.MA_TYPE === 'EMA' ? 'EMA' : 'SMA'),
+  maLength: Math.max(1, parseNumber(process.env.MA_LENGTH, 30)),
 };
 
 export interface MakerConfig {

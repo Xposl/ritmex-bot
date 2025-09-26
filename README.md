@@ -1,6 +1,6 @@
 # ritmex-bot
 
-一个基于 Bun 的 Aster 永续合约终端机器人，内置趋势跟随（SMA30）与做市策略，使用 websocket 实时行情，命令行界面由 Ink 驱动，可在断线后自动恢复运行。
+一个基于 Bun 的 Aster 永续合约终端机器人，内置趋势跟随（可配置 SMA/EMA）与做市策略，使用 websocket 实时行情，命令行界面由 Ink 驱动，可在断线后自动恢复运行。
 
 ## 快速上手
 
@@ -88,11 +88,11 @@ Windows 使用 WSL（推荐）：
 7. **风险提示**
    建议先在小额或仿真环境中测试策略；真实资金操作前请确认 API 仅开启必要权限，并逐步验证配置。
 
-A Bun-powered trading workstation for Aster perpetual contracts. The project ships two production strategies—an SMA30 trend follower and a dual-sided maker—that share a modular gateway, UI, and runtime state derived entirely from the exchange. Everything runs in the terminal via Ink, with live websocket refresh and automatic recovery from restarts or network failures.
+A Bun-powered trading workstation for Aster perpetual contracts. The project ships two production strategies—an configurable moving-average (SMA/EMA) crossover trend follower and a dual-sided maker—that share a modular gateway, UI, and runtime state derived entirely from the exchange. Everything runs in the terminal via Ink, with live websocket refresh and automatic recovery from restarts or network failures.
 
 ## Features
 - **Live data over websockets** with REST fallbacks and automatic re-sync after reconnects.
-- **Trend strategy**: SMA30 crossover entries, automated stop-loss / trailing-stop, and P&L tracking.
+- **Trend strategy**: SMA/EMA crossover entries (length configurable), automated stop-loss / trailing-stop, and P&L tracking.
 - **Maker strategy**: adaptive bid/ask chasing, risk stops, and target order introspection.
 - **Extensibility**: exchange gateway, engines, and UI components are modular for new venues or strategies.
 
@@ -120,6 +120,8 @@ PROFIT_LOCK_TRIGGER_USD=0.1 # profit threshold to start moving base stop (USDT)
 PROFIT_LOCK_OFFSET_USD=0.05 # base stop offset from entry after trigger (USDT)
 PRICE_TICK=0.1              # price tick size; set per symbol
 QTY_STEP=0.001              # quantity step size; set per symbol
+MA_TYPE=SMA                 # moving average type: SMA or EMA
+MA_LENGTH=30                # moving average window length
 ```
 Additional maker-specific knobs (`MAKER_*`) live in `src/config.ts` and may be overridden via env vars:
 ```bash

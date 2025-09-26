@@ -13,6 +13,7 @@ import {
   calcTrailingActivationPrice,
   getPosition,
   getSMA,
+  getEMA,
   type PositionSnapshot,
 } from "../utils/strategy";
 import { computePositionPnl } from "../utils/pnl";
@@ -34,7 +35,12 @@ export interface TrendEngineSnapshot {
   ready: boolean;
   symbol: string;
   lastPrice: number | null;
-  sma30: number | null;
+  /** 当前移动平均值 */
+  maValue: number | null;
+  /** 移动平均类型 */
+  maType: "SMA" | "EMA";
+  /** 移动平均长度 */
+  maLength: number;
   trend: "做多" | "做空" | "无信号";
   position: PositionSnapshot;
   pnl: number;
@@ -75,7 +81,7 @@ export class TrendEngine {
   private timer: ReturnType<typeof setInterval> | null = null;
   private processing = false;
   private lastPrice: number | null = null;
-  private lastSma30: number | null = null;
+  private lastMA: number | null = null;
   private totalProfit = 0;
   private totalTrades = 0;
   private lastOpenPlan: OpenOrderPlan = { side: null, price: null };
@@ -250,8 +256,8 @@ export class TrendEngine {
         return;
       }
       this.logStartupState();
-      const sma30 = getSMA(this.klineSnapshot, 30);
-      if (sma30 == null) {
+      const ma = this.computeMA();
+      if (ma == null) {
         return;
       }
       const ticker = this.tickerSnapshot!;
@@ -259,7 +265,7 @@ export class TrendEngine {
       const position = getPosition(this.accountSnapshot, this.config.symbol);
 
       if (Math.abs(position.positionAmt) < 1e-5) {
-        await this.handleOpenPosition(price, sma30);
+        await this.handleOpenPosition(price, ma);
       } else {
         const result = await this.handlePositionManagement(position, price);
         if (result.closed) {
@@ -269,7 +275,7 @@ export class TrendEngine {
       }
 
       this.updateSessionVolume(position);
-      this.lastSma30 = sma30;
+      this.lastMA = ma;
       this.lastPrice = price;
       this.emitUpdate();
     } catch (error) {
@@ -296,7 +302,7 @@ export class TrendEngine {
     this.startupLogged = true;
   }
 
-  private async handleOpenPosition(currentPrice: number, currentSma: number): Promise<void> {
+  private async handleOpenPosition(currentPrice: number, currentMa: number): Promise<void> {
     this.entryPricePendingLogged = false;
     const now = Date.now();
     const currentMinute = Math.floor(now / 60_000);
@@ -335,11 +341,11 @@ export class TrendEngine {
         }
       }
     }
-    if (this.lastPrice > currentSma && currentPrice < currentSma) {
-      await this.submitMarketOrder("SELL", currentPrice, "下穿SMA30，市价开空");
+    if (this.lastPrice > currentMa && currentPrice < currentMa) {
+      await this.submitMarketOrder("SELL", currentPrice, `下穿${this.config.maType}${this.config.maLength}，市价开空`);
       this.lastEntryMinute = currentMinute;
-    } else if (this.lastPrice < currentSma && currentPrice > currentSma) {
-      await this.submitMarketOrder("BUY", currentPrice, "上穿SMA30，市价开多");
+    } else if (this.lastPrice < currentMa && currentPrice > currentMa) {
+      await this.submitMarketOrder("BUY", currentPrice, `上穿${this.config.maType}${this.config.maLength}，市价开多`);
       this.lastEntryMinute = currentMinute;
     }
   }
@@ -785,12 +791,12 @@ export class TrendEngine {
   private buildSnapshot(): TrendEngineSnapshot {
     const position = getPosition(this.accountSnapshot, this.config.symbol);
     const price = this.tickerSnapshot ? Number(this.tickerSnapshot.lastPrice) : null;
-    const sma30 = this.lastSma30;
-    const trend = price == null || sma30 == null
+    const maValue = this.lastMA;
+    const trend = price == null || maValue == null
       ? "无信号"
-      : price > sma30
+      : price > maValue
       ? "做多"
-      : price < sma30
+      : price < maValue
       ? "做空"
       : "无信号";
     const pnl = price != null ? computePositionPnl(position, price, price) : 0;
@@ -798,7 +804,9 @@ export class TrendEngine {
       ready: this.isReady(),
       symbol: this.config.symbol,
       lastPrice: price,
-      sma30,
+      maValue,
+      maType: this.config.maType,
+      maLength: this.config.maLength,
       trend,
       position,
       pnl,
@@ -835,6 +843,15 @@ export class TrendEngine {
 
   private getReferencePrice(): number | null {
     return getMidOrLast(this.depthSnapshot, this.tickerSnapshot) ?? (this.lastPrice != null && Number.isFinite(this.lastPrice) ? this.lastPrice : null);
+  }
+
+  private computeMA(): number | null {
+    // klineSnapshot 已经在 isReady 里保证长度 >= maLength
+    const len = Math.max(1, this.config.maLength);
+    if (this.config.maType === "EMA") {
+      return getEMA(this.klineSnapshot, len);
+    }
+    return getSMA(this.klineSnapshot, len);
   }
 
 }

@@ -38,6 +38,25 @@ export function getSMA(values: AsterKline[], length: number): number | null {
   return sum / closes.length;
 }
 
+// 指数移动平均 (EMA)
+// 计算方式：使用最近 length 根 K 线；初始 ema = 第一根收盘价；然后
+// ema = currentClose * k + ema * (1 - k)，其中 k = 2 / (length + 1)
+// 若数据不足则返回 null。
+export function getEMA(values: AsterKline[], length: number): number | null {
+  if (!values || values.length < length) return null;
+  const closes = values.slice(-length).map((k) => Number(k.close));
+  if (closes.some((c) => !Number.isFinite(c))) return null;
+  if (closes.length === 0) return null;
+  const k = 2 / (length + 1);
+  // 初始化
+  let ema: number = closes[0]!;
+  for (let i = 1; i < closes.length; i++) {
+    const close = closes[i]!;
+    ema = close * k + ema * (1 - k);
+  }
+  return ema;
+}
+
 export function calcStopLossPrice(entryPrice: number, qty: number, side: "long" | "short", loss: number): number {
   if (side === "long") {
     return entryPrice - loss / qty;

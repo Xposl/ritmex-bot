@@ -77,7 +77,7 @@ export function TrendApp({ onExit }: TrendAppProps) {
     );
   }
 
-  const { position, tradeLog, openOrders, trend, ready, lastPrice, sma30, sessionVolume } = snapshot;
+  const { position, tradeLog, openOrders, trend, ready, lastPrice, maValue, maType, maLength, sessionVolume } = snapshot as any;
   const hasPosition = Math.abs(position.positionAmt) > 1e-5;
   const lastLogs = tradeLog.slice(-5);
   const sortedOrders = [...openOrders].sort((a, b) => (Number(b.updateTime ?? 0) - Number(a.updateTime ?? 0)) || Number(b.orderId) - Number(a.orderId));
@@ -106,7 +106,7 @@ export function TrendApp({ onExit }: TrendAppProps) {
       <Box flexDirection="column" marginBottom={1}>
         <Text color="cyanBright">Trend Strategy Dashboard</Text>
         <Text>
-          交易对: {snapshot.symbol} ｜ 最近价格: {formatNumber(lastPrice, priceDigits)} ｜ SMA30: {formatNumber(sma30, priceDigits)} ｜ 趋势: {trend}
+          交易对: {snapshot.symbol} ｜ 最近价格: {formatNumber(lastPrice, priceDigits)} ｜ {maType}{maLength}: {formatNumber(maValue, priceDigits)} ｜ 趋势: {trend}
         </Text>
         <Text color="gray">状态: {ready ? "实时运行" : READY_MESSAGE} ｜ 按 Esc 返回策略选择</Text>
       </Box>
@@ -155,7 +155,7 @@ export function TrendApp({ onExit }: TrendAppProps) {
       <Box flexDirection="column">
         <Text color="yellow">最近交易与事件</Text>
         {lastLogs.length > 0 ? (
-          lastLogs.map((item, index) => (
+          lastLogs.map((item: any, index: number) => (
             <Text key={`${item.time}-${index}`}>
               [{item.time}] [{item.type}] {item.detail}
             </Text>
