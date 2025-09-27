@@ -278,6 +278,14 @@ export async function placeTrailingStopOrder(
   if (!enforceMarkPriceGuard(side, activationPrice, guard, log, "动态止盈单")) return;
   const priceTick = opts?.priceTick ?? 0.1;
   const qtyStep = opts?.qtyStep ?? 0.001;
+  // Aster/Binance 期货 trailing 回调率要求：0.1% 步长，范围大致在 [0.1, 5]
+  const clampCallbackRate = (raw: number): number => {
+    if (!Number.isFinite(raw)) return 0.1;
+    const clamped = Math.min(5, Math.max(0.1, raw));
+    // 规范到 0.1 步长
+    return Math.round(clamped * 10) / 10;
+  };
+  const safeCallbackRate = clampCallbackRate(callbackRate);
   const params: CreateOrderParams = {
     symbol,
     side,
@@ -285,7 +293,7 @@ export async function placeTrailingStopOrder(
     quantity: roundQtyDownToStep(quantity, qtyStep),
     reduceOnly: "true",
     activationPrice: roundDownToTick(activationPrice, priceTick),
-    callbackRate,
+    callbackRate: safeCallbackRate,
     timeInForce: "GTC",
   };
   await deduplicateOrders(adapter, symbol, openOrders, locks, timers, pendings, type, side, log);
@@ -295,7 +303,7 @@ export async function placeTrailingStopOrder(
     pendings[type] = String(order.orderId);
     log(
       "order",
-      `挂动态止盈单: ${side} activation=${params.activationPrice} callbackRate=${callbackRate}`
+      `挂动态止盈单: ${side} activation=${params.activationPrice} callbackRate=${safeCallbackRate}`
     );
     return order;
   } catch (err) {

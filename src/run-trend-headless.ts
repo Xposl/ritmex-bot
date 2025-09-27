@@ -56,7 +56,7 @@ setInterval(() => {
   if (!snap.ready) return;
   const pos = snap.position;
   append(
-    `[${formatTs()}] STATE price=${snap.lastPrice} sma30=${snap.sma30} trend=${snap.trend} posAmt=${pos.positionAmt} entry=${pos.entryPrice} pnl=${snap.pnl.toFixed(4)} totalProfit=${snap.totalProfit.toFixed(4)} trades=${snap.totalTrades}`
+    `[${formatTs()}] STATE price=${snap.lastPrice} sma30=${snap.maValue} trend=${snap.trend} posAmt=${pos.positionAmt} entry=${pos.entryPrice} pnl=${snap.pnl.toFixed(4)} totalProfit=${snap.totalProfit.toFixed(4)} trades=${snap.totalTrades}`
   );
 }, 60_000).unref();
 
